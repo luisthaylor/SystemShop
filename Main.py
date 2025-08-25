@@ -1,7 +1,7 @@
 from SistemaVendas import Sistema
 from Clientes import Cliente
 from Clientes import Produto
-from SistemaVendas import Sistema
+
 
 def main():
     sistema = Sistema()

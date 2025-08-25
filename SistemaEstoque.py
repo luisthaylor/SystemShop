@@ -2,29 +2,26 @@ from Clientes import Cliente
 from Clientes import Produto
 
 
+
+def salvar_estoque(self):
+        try:
+            with open("estoque.txt", "w", encoding="utf-8") as f:
+                for p in self.produtos:
+                    f.write(f"{p.id};{p.nome};{p.quantidade};{p.preco}\n")
+            print("Estoque salvo em estoque.txt")
+        except:
+            print("Erro ao salvar estoque.")
+
 def carregar_estoque(self):
     try:
-        with open("estoque.txt", "r") as file:
+        with open("estoque.txt", "r", encoding="utf-8") as f:
             self.produtos.clear()
-            self.clientes.clear()
-            for line in file:
-                if line.strip():
-                    parts = line.strip().split(",")
-                    if parts[0] == "PRODUTO" and len(parts) == 4:
-                        _, nome, quantidade, preco = parts
-                        produto = Produto(nome, int(quantidade), float(preco))
-                        self.produtos.append(produto)
-                    elif parts[0] == "CLIENTE" and len(parts) == 3:
-                        _, nome, total_gasto = parts
-                        cliente = Cliente(nome)
-                        cliente.total_gasto = float(total_gasto)
-                        self.clientes.append(cliente)
-                    elif parts[0] == "TOTAL_ESTOQUE" and len(parts) == 2:
-                        self.total_estoque = float(parts[1])
-                    elif parts[0] == "TOTAL_VENDAS" and len(parts) == 2:
-                        self.total_vendas = float(parts[1])
-        print("Estoque carregado com sucesso!")
+            for linha in f:
+                id, nome, qtd, preco = linha.strip().split(";")
+                produto = Produto(int(id), nome, int(qtd), float(preco))
+                self.produtos.append(produto)
+        print("Estoque carregado com sucesso.")
     except FileNotFoundError:
-        print("Arquivo de estoque não encontrado. Um novo será criado.")
-    except Exception as e:
-        print(f"Erro ao carregar estoque: {e}")
+        print("Arquivo estoque.txt não encontrado.")
+    except:
+        print("Erro ao carregar estoque.")

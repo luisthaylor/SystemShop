@@ -171,3 +171,5 @@ class Sistema:
             print("Arquivo estoque.txt não encontrado.")
         except:
             print("Erro ao carregar estoque.")
+
+
