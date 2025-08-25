@@ -1,6 +1,7 @@
 from SistemaVendas import Sistema
 from Clientes import Cliente
 from Clientes import Produto
+from SistemaVendas import Sistema
 
 def main():
     sistema = Sistema()
@@ -16,7 +17,10 @@ def main():
         print("8 - Exibir valor total do estoque")
         print("9 - Exibir valor total de vendas realizadas")
         print("10 - Exibir clientes e valores totais gastos")
-        print("11 - Sair")
+        print("11 - Pesquisar produto")
+        print("12 - Salvar estoque em arquivo")
+        print("13 - Carregar estoque de arquivo")
+        print("14 - Sair")
         opcao = input("Escolha: ")
         if opcao == "1":
             sistema.cadastrar_cliente()
@@ -39,6 +43,12 @@ def main():
         elif opcao == "10":
             sistema.clientes_totais()
         elif opcao == "11":
+            sistema.pesquisar_produto()
+        elif opcao == "12":
+            sistema.salvar_estoque()
+        elif opcao == "13":
+            sistema.carregar_estoque()
+        elif opcao == "14":
             print("Saindo do sistema... Até logo!")
             break
         else:

@@ -121,3 +121,53 @@ class Sistema:
         else:
             for c in self.clientes:
                 print(f"Cliente: {c.nome} | Total gasto: R${c.total_gasto:.2f}")
+
+    def pesquisar_produto(self):
+        if not self.produtos:
+            print("Nenhum produto no estoque.")
+            return
+        escolha = input("Pesquisar por (1) ID ou (2) Nome: ")
+        if escolha == "1":
+            try:
+                id_busca = int(input("Digite o ID do produto: "))
+            except ValueError:
+                print("ID inválido.")
+                return
+            produto = next((p for p in self.produtos if p.id == id_busca), None)
+            if produto:
+                print(f"ID: {produto.id} | Nome: {produto.nome} | Quantidade: {produto.quantidade} | Preço: R${produto.preco:.2f}")
+            else:
+                print("Produto não encontrado.")
+        elif escolha == "2":
+            nome_busca = input("Digite o nome do produto: ").lower()
+            encontrados = [p for p in self.produtos if nome_busca in p.nome.lower()]
+            if encontrados:
+                for p in encontrados:
+                    print(f"ID: {p.id} | Nome: {p.nome} | Quantidade: {p.quantidade} | Preço: R${p.preco:.2f}")
+            else:
+                print("Nenhum produto encontrado.")
+        else:
+            print("Opção inválida.")
+
+    def salvar_estoque(self):
+        try:
+            with open("estoque.txt", "w", encoding="utf-8") as f:
+                for p in self.produtos:
+                    f.write(f"{p.id};{p.nome};{p.quantidade};{p.preco}\n")
+            print("Estoque salvo em estoque.txt")
+        except:
+            print("Erro ao salvar estoque.")
+
+    def carregar_estoque(self):
+        try:
+            with open("estoque.txt", "r", encoding="utf-8") as f:
+                self.produtos.clear()
+                for linha in f:
+                    id, nome, qtd, preco = linha.strip().split(";")
+                    produto = Produto(int(id), nome, int(qtd), float(preco))
+                    self.produtos.append(produto)
+            print("Estoque carregado com sucesso.")
+        except FileNotFoundError:
+            print("Arquivo estoque.txt não encontrado.")
+        except:
+            print("Erro ao carregar estoque.")
