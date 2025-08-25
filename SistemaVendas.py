@@ -1,7 +1,6 @@
 from Clientes import Cliente
 from Clientes import Produto
 
-
 class Sistema:
     def __init__(self):
         self.produtos = []
@@ -171,5 +170,26 @@ class Sistema:
             print("Arquivo estoque.txt não encontrado.")
         except:
             print("Erro ao carregar estoque.")
-
-
+    
+    def salvar_clientes(self):
+        try:
+            with open("clientes.txt", "w", encoding="utf-8") as f:
+                for c in self.clientes:
+                    f.write(f"{c.id};{c.nome};{c.total_gasto}\n")
+            print("Clientes salvos em clientes.txt")
+        except:
+            print("Erro ao salvar clientes.")
+    def carregar_clientes(self):
+        try:
+            with open("clientes.txt", "r", encoding="utf-8") as f:
+                self.clientes.clear()
+                for linha in f:
+                    id, nome, total_gasto = linha.strip().split(";")
+                    cliente = Cliente(int(id), nome)
+                    cliente.total_gasto = float(total_gasto)
+                    self.clientes.append(cliente)
+            print("Clientes carregados com sucesso.")
+        except FileNotFoundError:
+            print("Arquivo clientes.txt não encontrado.")
+        except:
+            print("Erro ao carregar clientes.")

@@ -2,7 +2,6 @@ from SistemaVendas import Sistema
 from Clientes import Cliente
 from Clientes import Produto
 
-
 def main():
     sistema = Sistema()
     while True:
