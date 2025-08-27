@@ -1,195 +1,151 @@
 from Clientes import Cliente
 from Clientes import Produto
 
+import os
+import json
+
+
 class Sistema:
     def __init__(self):
         self.produtos = []
         self.clientes = []
-        self.vendas = []  
-        self.operacoes = []
-        self.total_vendas = 0
-        self.proximo_produto_id = 100
-        self.proximo_cliente_id = 1
+        self.fila_vendas = []
+        self.pilha_operacoes = []
+        self.total_vendas = 0.0
 
-    def cadastrar_cliente(self):
-        nome = input("Digite o nome do cliente: ")
-        cliente = Cliente(self.proximo_cliente_id, nome)
-        self.clientes.append(cliente)
-        self.operacoes.append(("cadastro_cliente", cliente))
-        print(f"Cliente cadastrado com sucesso! (ID gerado: {cliente.id})")
-        self.proximo_cliente_id += 1
+        self.arquivo_produtos = "produtos.json"
+        self.arquivo_clientes = "clientes.json"
+
+        self.carregar_dados()
+
+    def salvar_dados(self):
+        with open(self.arquivo_produtos, "w", encoding="utf-8") as f:
+            json.dump([p.__dict__ for p in self.produtos], f, indent=4, ensure_ascii=False)
+        with open(self.arquivo_clientes, "w", encoding="utf-8") as f:
+            json.dump([c.__dict__ for c in self.clientes], f, indent=4, ensure_ascii=False)
+
+    def carregar_dados(self):
+        if os.path.exists(self.arquivo_produtos):
+            with open(self.arquivo_produtos, "r", encoding="utf-8") as f:
+                lista = json.load(f)
+                self.produtos = [Produto(**p) for p in lista]
+
+        if os.path.exists(self.arquivo_clientes):
+            with open(self.arquivo_clientes, "r", encoding="utf-8") as f:
+                lista = json.load(f)
+                self.clientes = [Cliente(**c) for c in lista]
+
+    def gerar_id_produto(self):
+        return len(self.produtos) + 1
+
+    def gerar_id_cliente(self):
+        return len(self.clientes) + 1
+
+    def adicionar_produto(self, nome, quantidade, preco):
+        novo = Produto(self.gerar_id_produto(), nome, quantidade, preco)
+        self.produtos.append(novo)
+        self.pilha_operacoes.append(("produto", novo))
+        self.salvar_dados()
+        print("✅ Produto adicionado com sucesso!")
+
+    def listar_produtos(self):
+        if not self.produtos:
+            print("Nenhum produto cadastrado.")
+        else:
+            for p in self.produtos:
+                print(p)
+
+    def pesquisar_produto(self, termo):
+        try:
+            termo = int(termo)
+            for p in self.produtos:
+                if p.id == termo:
+                    print(p)
+                    return p
+        except:
+            for p in self.produtos:
+                if termo.lower() in p.nome.lower():
+                    print(p)
+                    return p
+        print("Produto não encontrado.")
+        return None
+
+    def adicionar_cliente(self, nome):
+        novo = Cliente(self.gerar_id_cliente(), nome)
+        self.clientes.append(novo)
+        self.pilha_operacoes.append(("cliente", novo))
+        self.salvar_dados()
+        print("✅ Cliente adicionado com sucesso!")
 
     def listar_clientes(self):
         if not self.clientes:
             print("Nenhum cliente cadastrado.")
         else:
             for c in self.clientes:
-                print(f"ID: {c.id} | Nome: {c.nome} | Total gasto: R${c.total_gasto:.2f}")
+                print(c)
 
-    def cadastrar_produto(self):
-        nome = input("Digite o nome do produto: ")
-        try:
-            quantidade = int(input("Digite a quantidade: "))
-            preco = float(input("Digite o preço: "))
-        except ValueError:
-            print("Entrada inválida.")
-            return
-        produto = Produto(self.proximo_produto_id, nome, quantidade, preco)
-        self.produtos.append(produto)
-        self.operacoes.append(("cadastro_produto", produto))
-        print(f"Produto cadastrado com sucesso! (ID gerado: {produto.id})")
-        self.proximo_produto_id += 1
+    def realizar_venda(self, id_produto, id_cliente, quantidade):
+        produto = next((p for p in self.produtos if p.id == id_produto), None)
+        cliente = next((c for c in self.clientes if c.id == id_cliente), None)
 
-    def listar_produtos(self):
-        if not self.produtos:
-            print("Estoque vazio.")
-        else:
-            for p in self.produtos:
-                print(f"ID: {p.id} | Nome: {p.nome} | Quantidade: {p.quantidade} | Preço: R${p.preco:.2f}")
+        if not produto or not cliente:
+            print("❌ Produto ou cliente inválido.")
+            return
 
-    def realizar_venda(self):
-        if not self.clientes:
-            print("Nenhum cliente cadastrado.")
+        if produto.quantidade < quantidade:
+            print("❌ Estoque insuficiente.")
             return
-        if not self.produtos:
-            print("Nenhum produto no estoque.")
-            return
-        try:
-            id_cliente = int(input("Digite o ID do cliente: "))
-            cliente = next((c for c in self.clientes if c.id == id_cliente), None)
-            if not cliente:
-                print("Cliente não encontrado.")
-                return
-            id_produto = int(input("Digite o ID do produto: "))
-            produto = next((p for p in self.produtos if p.id == id_produto), None)
-            if not produto:
-                print("Produto não encontrado.")
-                return
-            quantidade = int(input("Digite a quantidade: "))
-        except ValueError:
-            print("Entrada inválida.")
-            return
-        if quantidade > produto.quantidade:
-            print("Quantidade indisponível.")
-            return
-        valor_total = quantidade * produto.preco
+
         produto.quantidade -= quantidade
-        cliente.total_gasto += valor_total
-        self.vendas.append((cliente, produto, quantidade, valor_total))
-        self.total_vendas += valor_total
-        self.operacoes.append(("venda", (cliente, produto, quantidade, valor_total)))
-        print(f"Venda realizada com sucesso! (Valor total: R${valor_total:.2f})")
+        valor = produto.preco * quantidade
+        cliente.total_gasto += valor
+        self.total_vendas += valor
 
-    def ver_fila_vendas(self):
-        if not self.vendas:
+        venda = {"produto": produto.nome, "cliente": cliente.nome, "quantidade": quantidade, "valor": valor}
+        self.fila_vendas.append(venda)
+        self.pilha_operacoes.append(("venda", venda))
+
+        self.salvar_dados()
+        print(f"✅ Venda realizada: {quantidade}x {produto.nome} para {cliente.nome} - R${valor:.2f}")
+
+    def visualizar_vendas(self):
+        if not self.fila_vendas:
             print("Nenhuma venda registrada.")
         else:
-            for v in self.vendas:
-                print(f"Cliente: {v[0].nome} | Produto: {v[1].nome} | Quantidade: {v[2]} | Valor: R${v[3]:.2f}")
+            for v in self.fila_vendas:
+                print(f"{v['cliente']} comprou {v['quantidade']}x {v['produto']} - R${v['valor']:.2f}")
 
     def desfazer_operacao(self):
-        if not self.operacoes:
+        if not self.pilha_operacoes:
             print("Nenhuma operação para desfazer.")
             return
-        tipo, dados = self.operacoes.pop()
-        if tipo == "cadastro_produto":
-            self.produtos.remove(dados)
-            print(f"Cadastro do produto {dados.nome} desfeito.")
-        elif tipo == "cadastro_cliente":
-            self.clientes.remove(dados)
-            print(f"Cadastro do cliente {dados.nome} desfeito.")
+
+        tipo, obj = self.pilha_operacoes.pop()
+        if tipo == "produto":
+            self.produtos.remove(obj)
+            print("❌ Último produto removido (desfeito).")
+        elif tipo == "cliente":
+            self.clientes.remove(obj)
+            print("❌ Último cliente removido (desfeito).")
         elif tipo == "venda":
-            cliente, produto, quantidade, valor = dados
-            produto.quantidade += quantidade
-            cliente.total_gasto -= valor
-            self.total_vendas -= valor
-            if (cliente, produto, quantidade, valor) in self.vendas:
-                self.vendas.remove((cliente, produto, quantidade, valor))
-            print("Venda desfeita com sucesso.")
-
-    def valor_total_estoque(self):
-        total = sum(p.quantidade * p.preco for p in self.produtos)
-        print(f"Valor total do estoque: R${total:.2f}")
-
-    def valor_total_vendas(self):
-        print(f"Valor total de vendas realizadas: R${self.total_vendas:.2f}")
-
-    def clientes_totais(self):
-        if not self.clientes:
-            print("Nenhum cliente cadastrado.")
-        else:
+            for p in self.produtos:
+                if p.nome == obj["produto"]:
+                    p.quantidade += obj["quantidade"]
             for c in self.clientes:
-                print(f"Cliente: {c.nome} | Total gasto: R${c.total_gasto:.2f}")
+                if c.nome == obj["cliente"]:
+                    c.total_gasto -= obj["valor"]
+            self.total_vendas -= obj["valor"]
+            self.fila_vendas.pop()
+            print("❌ Última venda desfeita.")
+        self.salvar_dados()
 
-    def pesquisar_produto(self):
-        if not self.produtos:
-            print("Nenhum produto no estoque.")
-            return
-        escolha = input("Pesquisar por (1) ID ou (2) Nome: ")
-        if escolha == "1":
-            try:
-                id_busca = int(input("Digite o ID do produto: "))
-            except ValueError:
-                print("ID inválido.")
-                return
-            produto = next((p for p in self.produtos if p.id == id_busca), None)
-            if produto:
-                print(f"ID: {produto.id} | Nome: {produto.nome} | Quantidade: {produto.quantidade} | Preço: R${produto.preco:.2f}")
-            else:
-                print("Produto não encontrado.")
-        elif escolha == "2":
-            nome_busca = input("Digite o nome do produto: ").lower()
-            encontrados = [p for p in self.produtos if nome_busca in p.nome.lower()]
-            if encontrados:
-                for p in encontrados:
-                    print(f"ID: {p.id} | Nome: {p.nome} | Quantidade: {p.quantidade} | Preço: R${p.preco:.2f}")
-            else:
-                print("Nenhum produto encontrado.")
-        else:
-            print("Opção inválida.")
+    def exibir_valor_estoque(self):
+        total = sum(p.preco * p.quantidade for p in self.produtos)
+        print(f"💰 Valor total do estoque: R${total:.2f}")
 
-    def salvar_estoque(self):
-        try:
-            with open("estoque.txt", "w", encoding="utf-8") as f:
-                for p in self.produtos:
-                    f.write(f"{p.id};{p.nome};{p.quantidade};{p.preco}\n")
-            print("Estoque salvo em estoque.txt")
-        except:
-            print("Erro ao salvar estoque.")
+    def exibir_total_vendas(self):
+        print(f"💵 Valor total de vendas realizadas: R${self.total_vendas:.2f}")
 
-    def carregar_estoque(self):
-        try:
-            with open("estoque.txt", "r", encoding="utf-8") as f:
-                self.produtos.clear()
-                for linha in f:
-                    id, nome, qtd, preco = linha.strip().split(";")
-                    produto = Produto(int(id), nome, int(qtd), float(preco))
-                    self.produtos.append(produto)
-            print("Estoque carregado com sucesso.")
-        except FileNotFoundError:
-            print("Arquivo estoque.txt não encontrado.")
-        except:
-            print("Erro ao carregar estoque.")
-    
-    def salvar_clientes(self):
-        try:
-            with open("clientes.txt", "w", encoding="utf-8") as f:
-                for c in self.clientes:
-                    f.write(f"{c.id};{c.nome};{c.total_gasto}\n")
-            print("Clientes salvos em clientes.txt")
-        except:
-            print("Erro ao salvar clientes.")
-    def carregar_clientes(self):
-        try:
-            with open("clientes.txt", "r", encoding="utf-8") as f:
-                self.clientes.clear()
-                for linha in f:
-                    id, nome, total_gasto = linha.strip().split(";")
-                    cliente = Cliente(int(id), nome)
-                    cliente.total_gasto = float(total_gasto)
-                    self.clientes.append(cliente)
-            print("Clientes carregados com sucesso.")
-        except FileNotFoundError:
-            print("Arquivo clientes.txt não encontrado.")
-        except:
-            print("Erro ao carregar clientes.")
+    def exibir_clientes_valores(self):
+        for c in self.clientes:
+            print(f"{c.nome} - Total gasto: R${c.total_gasto:.2f}")
